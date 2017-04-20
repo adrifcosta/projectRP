@@ -3,21 +3,28 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn import decomposition
-dataset = np.loadtxt('X_train.txt')
-labels=np.loadtxt('y_train.txt')
+import pandas as pd
+#dataset = np.loadtxt('X_train.txt')
+#linhas são samples
+#colunas são features
+#labels=np.loadtxt('y_train.txt')
 
+
+dataset=pd.read_csv('X_train.txt',delim_whitespace=True,  header=None);
+dataset=dataset.as_matrix();
 print(dataset)
-
-
+print("Colunas", len(dataset[0,:]))
+print("Linhas", len(dataset[:,0]))
+#Matriz de correlação
+matrix_corr=pd.DataFrame.corr(dataset);
+plt.matshow(matrix_corr);
 
 #Redução de dimensão-PCA
 pca=decomposition.PCA(n_components=3)
 pca.fit(dataset)
 datasetPCA=pca.transform(dataset)
 
-
-
-#Scatter dos pontos
+#Scatter dos pontos obtidos pelo PCA
 colors = ['red','green','blue','purple','yellow','pink']
 fig = plt.figure(1, figsize=(4, 3))
 plt.clf()

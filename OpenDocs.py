@@ -54,7 +54,7 @@ dataset_scaled=preprocessing.scale(dataset)
 #Matriz de correlação
 #corrcoef() usa estrutura de dados em que as features estão por linhas
 matrix_corr=np.corrcoef(dataset_scaled.transpose())
-mean_corr=labels_bin=np.zeros(len(matrix_corr[:,0]))
+mean_corr=np.zeros(len(matrix_corr[:,0]))
 
 for i in range (0, len(matrix_corr[:,0])):
     mean_corr[i]=np.mean(matrix_corr[i,:])
@@ -79,6 +79,7 @@ for k in all_indexs:
 #reduced_data_cm dados que resultaram da redução por interpretação dos coeficientes de correlação
 #-----------------------------------------------------------------
 #Kruskall Wallis
+#Este método não está a apresentar os resultados que pretendemos
 '''
 scores_kw_multi=[];
 pValue_kw_multi=[];
@@ -120,6 +121,10 @@ model.fit(dataset_scaled, labels_multi)
 print(model.feature_importances_)
 '''
 #REDUÇÃO DE DIMENSÃO
+
+colors = ['red','green','blue','purple','yellow','pink']
+colorsBin = ['yellow','pink']
+
 def scatter3d(data,labels, title, colors):
     plt.figure()
     fig = plt.figure(1, figsize=(4, 3))
@@ -130,60 +135,53 @@ def scatter3d(data,labels, title, colors):
     plt.title(title)
     plt.show()
 
+def plot2d(data,labels, title, colors):
+    plt.figure()
+    fig = plt.figure(1, figsize=(4, 3))
+    plt.clf()
+    plt.scatter(data[:, 0], data[:, 1], c=labels,
+               cmap=matplotlib.colors.ListedColormap(colors))
+    plt.title(title)
+    plt.show()
+
 #-----------------------------------------------------------------
 #PCA
 '''
 pca=decomposition.PCA(n_components=3)
-pca.fit(dataset)
+pca.fit(dataset_scaled)
 datasetPCA=pca.transform(dataset_scaled)
-print(len(datasetPCA[1,:]))
-print(len(datasetPCA[:,1]))
+
+pca2d=decomposition.PCA(n_components=2)
+pca2d.fit(dataset_scaled)
+datasetPCA2d=pca2d.transform(dataset_scaled)
 
 pca1=decomposition.PCA(n_components=30)
 pca1.fit(dataset_scaled)
 datasetPCA1=pca.transform(dataset_scaled)
 
 #Scatter dos pontos obtidos pelo PCA
- colors = ['red','green','blue','purple','yellow','pink']
- fig = plt.figure(1, figsize=(4, 3))
- plt.clf()
- ax = Axes3D(fig, rect=[0, 0, .95, 1], elev=48, azim=134)
- ax.scatter(datasetPCA[:, 0], datasetPCA[:, 1], datasetPCA[:, 2], c=labels_multi, cmap=matplotlib.colors.ListedColormap(colors))
- plt.title('LDA')
- plt.show()
+scatter3d(datasetPCA,labels_multi, 'Multiclass Problem - PCA', colors)
+scatter3d(datasetPCA,labels_bin, 'Binary Problem - PCA', colorsBin)
+
+plot2d(datasetPCA2d,labels_multi, 'Multiclass Problem - PCA', colors)
+plot2d(datasetPCA2d,labels_bin, 'Binary Problem - PCA', colorsBin)
 
 '''
 #-----------------------------------------------------------------
 #LDA
-
 lda = LinearDiscriminantAnalysis(n_components=3)
 lda_components = lda.fit(dataset_scaled, labels_multi).transform(dataset_scaled)
 
-lda_bin = LinearDiscriminantAnalysis(n_components=3)
-lda_components_bin = lda_bin.fit(dataset_scaled, labels_bin).transform(dataset_scaled)
 
-colors = ['red','green','blue','purple','yellow','pink']
-colorsBin = ['yellow','pink']
+lda1 = LinearDiscriminantAnalysis(n_components=3)
+lda_components_bin = lda1.fit(dataset_scaled, labels_bin).transform(dataset_scaled)
 
-scatter3d(lda_components,labels_multi, 'Multiclass Problem-LDA', colors);
-scatter3d(lda_components_bin,labels_bin, 'Binary Problem-LDA', colors);
+print(lda_components_bin.shape)
 
-# plt.figure()
-# fig = plt.figure(1, figsize=(4, 3))
-# plt.clf()
-# ax = Axes3D(fig, rect=[0, 0, .95, 1], elev=48, azim=134)
-# ax.scatter(lda_components[:, 0], lda_components[:, 1], lda_components[:, 2], c=labels_multi,
-#            cmap=matplotlib.colors.ListedColormap(colors))
-# plt.title('Multiclass Problem-LDA')
-# plt.show()
-#
-# plt.figure()
-# fig = plt.figure(1, figsize=(4, 3))
-# plt.clf()
-# ax = Axes3D(fig, rect=[0, 0, .95, 1], elev=48, azim=134)
-# ax.scatter(lda_components_bin[:, 0], lda_components_bin[:, 1], lda_components_bin[:, 2], c=labels_bin,
-#            cmap=matplotlib.colorsBin.ListedColormap(colorsBin))
-# plt.title('Binary Problem-LDA')
-# plt.show()
-#
-#
+plot2d(lda_components,labels_multi, 'Multiclass Problem - LDA 2d', colors)
+plot2d(lda_components,labels_bin, 'Binary Problem - LDA 2d', colorsBin)
+
+scatter3d(lda_components,labels_multi, 'Multiclass Problem - LDA 3d', colors);
+
+
+

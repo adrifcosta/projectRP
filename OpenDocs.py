@@ -23,6 +23,14 @@ labels_bin=np.zeros(len(labels_multi))
 labels_bin = np.squeeze(labels_bin)
 labels_multi = np.squeeze(labels_multi)
 
+labels_bin_names=np.array(['Not Walking', 'Walking'])
+labels_bin_names=labels_bin_names.transpose()
+
+labels_multi_names=np.array(['Walking', 'Walking Upstairs', 'Walking Downstairs', 'Sitting', 'Standing', 'Laying'])
+labels_multi_names=labels_multi_names.transpose()
+
+
+
 for i in range(0, len(labels_multi)):
     if labels_multi[i]<4:
         labels_bin[i]=1
@@ -70,12 +78,15 @@ for j in range (0, len(mean_corr)):
         mean_corr_cm.append(mean_corr[j])
         features_names_cm.append(features_names[j])
         all_indexs.append(j)
-
+print(len(mean_corr_cm))
+print(mean_corr_cm)
+print(features_names_cm)
 reduced_data_cm = np.zeros((len(dataset_scaled[:,1]),len(mean_corr_cm)))
 i = 0
 for k in all_indexs:
     reduced_data_cm[:,i]=dataset_scaled[:,k]
     i=i+1
+
 #reduced_data_cm dados que resultaram da redução por interpretação dos coeficientes de correlação
 #-----------------------------------------------------------------
 #Kruskall Wallis
@@ -101,7 +112,16 @@ print(pValue_kw_multi)
 #
 #
 # print(pValue_kw_bin)
+
+
 '''
+#decidimos então correr o método em matlab obtendo um ficheiro com o rank de features
+
+features_kw_multi=pd.read_csv('rank_bin_kw.txt', delim_whitespace=True,header=None)
+features_kw_bin=pd.read_csv('rank_multi_kw.txt', delim_whitespace=True,header=None)
+
+print(features_kw_multi)
+print(features_kw_bin)
 #-----------------------------------------------------------------
 #Recursive Feature Elimination
 '''
@@ -125,7 +145,7 @@ print(model.feature_importances_)
 colors = ['red','green','blue','purple','yellow','pink']
 colorsBin = ['yellow','pink']
 
-def scatter3d(data,labels, title, colors):
+def scatter3d(data,labels, title, colors,legend):
     plt.figure()
     fig = plt.figure(1, figsize=(4, 3))
     plt.clf()
@@ -144,9 +164,10 @@ def plot2d(data,labels, title, colors):
     plt.title(title)
     plt.show()
 
+
 #-----------------------------------------------------------------
 #PCA
-'''
+#'''
 pca=decomposition.PCA(n_components=3)
 pca.fit(dataset_scaled)
 datasetPCA=pca.transform(dataset_scaled)
@@ -160,15 +181,16 @@ pca1.fit(dataset_scaled)
 datasetPCA1=pca.transform(dataset_scaled)
 
 #Scatter dos pontos obtidos pelo PCA
-scatter3d(datasetPCA,labels_multi, 'Multiclass Problem - PCA', colors)
-scatter3d(datasetPCA,labels_bin, 'Binary Problem - PCA', colorsBin)
+#scatter3d(datasetPCA,labels_multi, 'Multiclass Problem - PCA', colors, labels_multi_names)
+scatter3d(datasetPCA,labels_bin, 'Binary Problem - PCA', colorsBin, labels_bin_names)
 
 plot2d(datasetPCA2d,labels_multi, 'Multiclass Problem - PCA', colors)
 plot2d(datasetPCA2d,labels_bin, 'Binary Problem - PCA', colorsBin)
 
-'''
+#'''
 #-----------------------------------------------------------------
 #LDA
+#'''
 lda = LinearDiscriminantAnalysis(n_components=3)
 lda_components = lda.fit(dataset_scaled, labels_multi).transform(dataset_scaled)
 
@@ -178,10 +200,10 @@ lda_components_bin = lda1.fit(dataset_scaled, labels_bin).transform(dataset_scal
 
 print(lda_components_bin.shape)
 
-plot2d(lda_components,labels_multi, 'Multiclass Problem - LDA 2d', colors)
-plot2d(lda_components,labels_bin, 'Binary Problem - LDA 2d', colorsBin)
+plot2d(lda_components,labels_multi, 'Multiclass Problem - LDA', colors)
+plot2d(lda_components,labels_bin, 'Binary Problem - LDA', colorsBin)
 
-scatter3d(lda_components,labels_multi, 'Multiclass Problem - LDA 3d', colors);
+scatter3d(lda_components,labels_multi, 'Multiclass Problem - LDA', colors);
 
-
+#'''
 

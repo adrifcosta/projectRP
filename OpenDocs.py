@@ -10,13 +10,22 @@ from sklearn.feature_selection import RFE
 from sklearn.linear_model import LogisticRegression
 from sklearn import metrics
 from sklearn.ensemble import ExtraTreesClassifier
+from collections import Counter
 
 features_names=pd.read_csv('features.txt', delim_whitespace=True,header=None);
 labels_multi=pd.read_csv('y_train.txt', header=None);
 dataset=pd.read_csv('X_train.txt',delim_whitespace=True,  header=None);
 dataset=dataset.as_matrix();
 
+
+
+
 labels_multi=labels_multi.as_matrix();
+
+#print(labels_multi)
+unique, counts = np.unique(labels_multi, return_counts=True)
+print(dict(zip(unique, counts)))
+
 labels_bin=np.zeros(len(labels_multi));
 for i in range(0, len(labels_multi)):
     if labels_multi[i]<4:
@@ -43,6 +52,7 @@ features_names=features_names.as_matrix()[:,1];
 #Normalização dos dados
 #dataset_scaled tem média nula e desvio padrão unitário
 dataset_scaled=preprocessing.scale(dataset);
+
 
 #SELEÇAO DE FEATURES
 #-----------------------------------------------------------------
@@ -123,14 +133,62 @@ print(model.feature_importances_)
 pca=decomposition.PCA(n_components=3)
 pca.fit(dataset)
 datasetPCA=pca.transform(dataset_scaled)
-print(len(datasetPCA[1,:]))
-print(len(datasetPCA[:,1]))
+#print(len(datasetPCA[1,:]))
+#print(len(datasetPCA[:,1]))
 
 #Scatter dos pontos obtidos pelo PCA
- colors = ['red','green','blue','purple','yellow','pink']
- fig = plt.figure(1, figsize=(4, 3))
- plt.clf()
- ax = Axes3D(fig, rect=[0, 0, .95, 1], elev=48, azim=134)
- ax.scatter(datasetPCA[:, 0], datasetPCA[:, 1], datasetPCA[:, 2], c=labels_multi, cmap=matplotlib.colors.ListedColormap(colors))
- plt.show()
+colors = ['red','green','blue','purple','yellow','pink']
+fig = plt.figure(1, figsize=(4, 3))
+plt.clf()
+ax = Axes3D(fig, rect=[0, 0, .95, 1], elev=48, azim=134)
+ax.scatter(datasetPCA[:, 0], datasetPCA[:, 1], datasetPCA[:, 2], c=labels_multi, cmap=matplotlib.colors.ListedColormap(colors))
+plt.show()
+
+def fit(self):
+    # Function estimates the LDA parameters
+    def estimate_params(data):
+        # group data by label column
+        grouped = data.groupby(self.data.ix[:,self.labelcol])
+
+        # calculate means for each class
+        means = {}
+        for c in self.classes:
+            means[c] = np.array(self.drop_col(self.classwise[c], self.labelcol).mean(axis = 0))
+
+        # calculate the overall mean of all the data
+        overall_mean = np.array(self.drop_col(data, self.labelcol).mean(axis = 0))
+
+        # calculate between class covariance matrix
+        # S_B = \sigma{N_i (m_i - m) (m_i - m).T}
+        S_B = np.zeros((data.shape[1] - 1, data.shape[1] - 1))
+        for c in means.keys():
+            S_B += np.multiply(len(self.classwise[c]),
+                               np.outer((means[c] - overall_mean),
+                                        (means[c] - overall_mean)))
+
+        # calculate within class covariance matrix
+        # S_W = \sigma{S_i}
+        # S_i = \sigma{(x - m_i) (x - m_i).T}
+        S_W = np.zeros(S_B.shape)
+        for c in self.classes:
+            tmp = np.subtract(self.drop_col(self.classwise[c], self.labelcol).T, np.expand_dims(means[c], axis=1))
+            S_W = np.add(np.dot(tmp, tmp.T), S_W)
+
+        # objective : find eigenvalue, eigenvector pairs for inv(S_W).S_B
+        mat = np.dot(np.linalg.pinv(S_W), S_B)
+        eigvals, eigvecs = np.linalg.eig(mat)
+        eiglist = [(eigvals[i], eigvecs[:, i]) for i in range(len(eigvals))]
+
+        # sort the eigvals in decreasing order
+        eiglist = sorted(eiglist, key = lambda x : x[0], reverse = True)
+
+        # take the first num_dims eigvectors
+        w = np.array([eiglist[i][1] for i in range(self.num_dims)])
+
+        self.w = w
+        self.means = means
+        return
+
+    # estimate the LDA parameters
+    estimate_params(dataset)
 

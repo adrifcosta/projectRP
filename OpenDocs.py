@@ -5,6 +5,7 @@ import numpy as np
 from sklearn import decomposition
 import pandas as pd
 from sklearn import preprocessing
+from sklearn.metrics import confusion_matrix
 from sklearn.feature_selection import SelectFromModel
 from sklearn.svm import LinearSVC
 import scipy.stats
@@ -13,17 +14,23 @@ from sklearn.linear_model import LogisticRegression
 from sklearn import metrics
 from sklearn.ensemble import ExtraTreesClassifier
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+import math
 
 features_names=pd.read_csv('features.txt', delim_whitespace=True,header=None)
 labels_multi=pd.read_csv('y_train.txt', header=None)
-dataset=pd.read_csv('X_train.txt',delim_whitespace=True,  header=None)
+dataset=pd.read_csv('X_train.txt',delim_whitespace=True,  header=None) # o data set é 7352 linhas por 561 colunas
 dataset=dataset.as_matrix()
+dataset_test=pd.read_csv('X_test.txt',delim_whitespace=True,  header=None)
+labels_test=pd.read_csv('y_test.txt', header=None)
+dataset_test = dataset_test.as_matrix() # o data set teste tem 2947 linhas por 561 colunas
 
 labels_multi=labels_multi.as_matrix()
+labels_test= labels_test.as_matrix()
 labels_bin=np.zeros(len(labels_multi))
 
 labels_bin = np.squeeze(labels_bin)
 labels_multi = np.squeeze(labels_multi)
+labels_test= np.squeeze(labels_test)
 
 labels_bin_names=np.array(['Not Walking', 'Walking'])
 labels_bin_names=labels_bin_names.transpose()
@@ -34,7 +41,7 @@ labels_multi_names=labels_multi_names.transpose()
 
 # SABER QUANTOS LABELS É QUE HÁ DE CADA TIPO
 unique, counts = np.unique(labels_multi, return_counts=True)
-print(dict(zip(unique, counts)))
+#print(dict(zip(unique, counts)))
 
 labels_bin=np.zeros(len(labels_multi));
 
@@ -43,6 +50,15 @@ for i in range(0, len(labels_multi)):
         labels_bin[i]=1
     else:
         labels_bin[i] = 0
+
+labels_bin_test = np.zeros(len(labels_test));
+
+for i in range(0, len(labels_test)):
+    if labels_test[i] < 4:
+        labels_bin_test[i] = 1
+    else:
+        labels_bin_test[i] = 0
+
 
 #LABELS_MULTI
 #1-Walking
@@ -59,12 +75,46 @@ for i in range(0, len(labels_multi)):
 #Nomes de todas as features
 features_names=features_names.as_matrix()[:,1]
 
-
 #Normalização dos dados
 #dataset_scaled tem média nula e desvio padrão unitário
 dataset_scaled=preprocessing.scale(dataset)
 
+def distance_min_classification(dataset_scaled,labels_bin, dataset_test):
 
+    indices_0=np.empty(0)
+    indices_1=np.empty(0)
+    for i in range(0, len(labels_bin)):
+        if(labels_bin[i]==0):
+           indices_0 =np.append(indices_0,i)
+        else:
+            indices_1=np.append(indices_1,i)
+
+    indices_0=indices_0.astype(int)
+    indices_1 = indices_1.astype(int)
+
+    data_0= dataset_scaled[indices_0,:]
+    data_1=dataset_scaled[indices_1,:]
+
+    mean_labels_1=np.empty(0)
+    mean_labels_0=np.empty(0)
+
+    for i in range(0, len(dataset_scaled[0])):
+        mean_labels_0 = np.append(mean_labels_0,np.mean((data_0[:,i])))
+        mean_labels_1 = np.append(mean_labels_1, np.mean((data_1[:,i])))
+
+    labels_vector=np.empty(0)
+    for i in range(0,len(dataset_test[:,0])):
+        dist0=np.sqrt(sum(np.power(np.subtract(dataset_test[i,:],mean_labels_0),2)))
+        dist1=np.sqrt(sum(np.power(np.subtract(dataset_test[i,:], mean_labels_1), 2)))
+        print(dist0,dist1)
+        if (dist0<dist1):
+            labels_vector = np.append(labels_vector,[0],axis=0)
+        else:
+            labels_vector = np.append(labels_vector,[1],axis=0)
+    return labels_vector
+
+labels_classification=distance_min_classification(dataset_scaled,labels_bin,dataset_test)
+print(confusion_matrix(labels_bin_test,labels_classification))
 
 #SELEÇAO DE FEATURES
 #-----------------------------------------------------------------

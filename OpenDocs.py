@@ -14,6 +14,8 @@ from sklearn.linear_model import LogisticRegression
 from sklearn import metrics
 from sklearn.ensemble import ExtraTreesClassifier
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.feature_selection import SelectFromModel
+from sklearn.linear_model import LassoCV
 import math
 
 features_names=pd.read_csv('features.txt', delim_whitespace=True,header=None)
@@ -118,38 +120,66 @@ print(confusion_matrix(labels_bin_test,labels_classification))
 
 #SELEÇAO DE FEATURES
 #-----------------------------------------------------------------
-#Matriz de correlação
-#corrcoef() usa estrutura de dados em que as features estão por linhas
-matrix_corr=np.corrcoef(dataset_scaled.transpose())
-mean_corr=np.zeros(len(matrix_corr[:,0]))
+def features_selection(dataset_scaled,features_names, labels, option):
+    if (option==1):
+        # Matriz de correlação
+        # corrcoef() usa estrutura de dados em que as features estão por linhas
+        matrix_corr=np.corrcoef(dataset_scaled.transpose())
+        mean_corr=np.zeros(len(matrix_corr[:,0]))
 
-for i in range (0, len(matrix_corr[:,0])):
-    mean_corr[i]=np.mean(matrix_corr[i,:])
-mean_corr=np.absolute(mean_corr)
+        for i in range (0, len(matrix_corr[:,0])):
+            mean_corr[i]=np.mean(matrix_corr[i,:])
+        mean_corr=np.absolute(mean_corr)
+
+        mean_corr_cm=np.empty(0)
+        features_names_cm=np.empty(0)
+        all_indexs=np.empty(0)
+
+        for j in range (0, len(mean_corr)):
+            if (mean_corr[j]<0.03):
+                mean_corr_cm=np.append(mean_corr_cm,mean_corr[j])
+                features_names_cm= np.append(features_names_cm,features_names[j])
+                all_indexs =np.append(all_indexs,j)
+        #print(len(mean_corr_cm))
+        #print(mean_corr_cm.shape)
+        #print(features_names_cm.shape)
+        reduced_data_cm = np.zeros((len(dataset_scaled[:,1]),len(mean_corr_cm)))
+        i = 0
+        for k in all_indexs:
+            reduced_data_cm[:,i]=dataset_scaled[:,k]
+            i=i+1
+        # reduced_data_cm dados que resultaram da redução por interpretação dos coeficientes de correlação
+        features_reduce=reduced_data_cm
+        features_name_reduce=features_names_cm
+    elif (option==2):
+        lsvc = LinearSVC(C=0.01, penalty="l1", dual=False).fit(dataset_scaled, labels)
+        model = SelectFromModel(lsvc, prefit=True)
+        features_reduce = model.transform(dataset_scaled)
+        #print(X_new.shape)
+        #print(model.get_support())  # ESTE METODO DIZ-NOS QUAIS FEATURES FORAM ESCOLHIDA E QUAIS NAO (TRUE SE FORAM, FALSE SE NAO FORAM)
+        features_name_reduce=features_names[model.get_support()] #FICAMOS SO COM OS NOMES DAS FEATURES SELECIONADAS
+    elif(option==3):
+        # Feature Importance using Extra Trees Classifier
+        labels_multi = np.squeeze(labels)
+        model = ExtraTreesClassifier()
+        model.fit(dataset_scaled, labels)
+        print(model.feature_importances_.shape)
+        features_importances = model.feature_importances_
+        ind = np.argsort(features_importances)[::-1]  # RETORNA OS INDICES DAS FEATURES PELA ORDEM DE IMPORTANCIA DECRESCENTE
+        features_reduce = features_importances[ind[0:39]]  # ESCOLHI POR EXEMPLO AS 40 MELHORES FEATURES
+        features_name_reduce = features_names[ind[0:39]]  # NOMES DESSAS 40 FEATURES ESCOLHIDAS
+    elif(option==4):
+        ##LASOV
+        clf = LassoCV()
+        sfm = SelectFromModel(clf)
+        sfm.fit(dataset_scaled, labels)
+        features_reduce=sfm.transform(dataset_scaled)
+        #n_features = features_reduce.shape[1]
+        features_name_reduce=features_names[sfm.get_support()]
+    return features_name_reduce,features_reduce
 
 
-mean_corr_cm=[]
-features_names_cm=[]
-all_indexs=[]
-
-for j in range (0, len(mean_corr)):
-    if (mean_corr[j]<0.03):
-        mean_corr_cm.append(mean_corr[j])
-        features_names_cm.append(features_names[j])
-        all_indexs.append(j)
-print(len(mean_corr_cm))
-print(mean_corr_cm)
-print(features_names_cm)
-reduced_data_cm = np.zeros((len(dataset_scaled[:,1]),len(mean_corr_cm)))
-i = 0
-for k in all_indexs:
-    reduced_data_cm[:,i]=dataset_scaled[:,k]
-    i=i+1
-
-
-
-
-#reduced_data_cm dados que resultaram da redução por interpretação dos coeficientes de correlação
+features_selection(dataset_scaled,features_names,labels_bin,2)
 #-----------------------------------------------------------------
 #Kruskall Wallis
 #Este método não está a apresentar os resultados que pretendemos
@@ -195,21 +225,6 @@ print(rfe.support_)
 print(rfe.ranking_)
 '''
 #---------------------------------------------
-#SVM
-'''
-lsvc = LinearSVC(C=0.01, penalty="l1", dual=False).fit(dataset_scaled, labels_multi)
-model = SelectFromModel(lsvc, prefit=True)
-X_new = model.transform(dataset_scaled)
-print(X_new.shape)
-'''
-#-----------------------------------------------------------------
-#Feature Importance using Extra Trees Classifier
-'''
-labels_multi=np.squeeze(labels_multi)
-model = ExtraTreesClassifier()
-model.fit(dataset_scaled, labels_multi)
-print(model.feature_importances_)
-'''
 #REDUÇÃO DE DIMENSÃO
 
 colors = ['red','green','blue','purple','yellow','pink']

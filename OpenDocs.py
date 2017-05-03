@@ -17,6 +17,8 @@ from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.feature_selection import SelectFromModel
 from sklearn.linear_model import LassoCV
 import math
+from sklearn.decomposition import PCA
+
 
 features_names=pd.read_csv('features.txt', delim_whitespace=True,header=None)
 labels_multi=pd.read_csv('y_train.txt', header=None)
@@ -108,7 +110,7 @@ def distance_min_classification(dataset_scaled,labels_bin, dataset_test):
     for i in range(0,len(dataset_test[:,0])):
         dist0=np.sqrt(sum(np.power(np.subtract(dataset_test[i,:],mean_labels_0),2)))
         dist1=np.sqrt(sum(np.power(np.subtract(dataset_test[i,:], mean_labels_1), 2)))
-        print(dist0,dist1)
+        #print(dist0,dist1)
         if (dist0<dist1):
             labels_vector = np.append(labels_vector,[0],axis=0)
         else:
@@ -116,7 +118,7 @@ def distance_min_classification(dataset_scaled,labels_bin, dataset_test):
     return labels_vector
 
 labels_classification=distance_min_classification(dataset_scaled,labels_bin,dataset_test)
-print(confusion_matrix(labels_bin_test,labels_classification))
+#print(confusion_matrix(labels_bin_test,labels_classification))
 
 #SELEÇAO DE FEATURES
 #-----------------------------------------------------------------
@@ -179,7 +181,8 @@ def features_selection(dataset_scaled,features_names, labels, option):
     return features_name_reduce,features_reduce
 
 
-features_selection(dataset_scaled,features_names,labels_bin,2)
+#features_selection(dataset_scaled,features_names,labels_bin,2)
+
 #-----------------------------------------------------------------
 #Kruskall Wallis
 #Este método não está a apresentar os resultados que pretendemos
@@ -253,17 +256,23 @@ def plot2d(data,labels, title, colors):
 #-----------------------------------------------------------------
 #PCA
 #'''
-pca=decomposition.PCA(n_components=3)
-pca.fit(dataset_scaled)
-datasetPCA=pca.transform(dataset_scaled)
+def ourPCA(data, comp):
+    pca = decomposition.PCA(n_components=comp)
+    pca.fit(data)
+    #Variance (% cumulative) explained by the principal components
+    print(np.cumsum(np.round(pca.explained_variance_ratio_, decimals=4) * 100))
+    #pca.components_ The components are sorted by explained_variance_
+    #a 1a componente é aquela que tem mais variance_ratio
+    datasetPCA = pca.transform(data)
+    return datasetPCA
 
-pca2d=decomposition.PCA(n_components=2)
-pca2d.fit(dataset_scaled)
-datasetPCA2d=pca2d.transform(dataset_scaled)
+datasetPCA=ourPCA(dataset_scaled,3)
 
-pca1=decomposition.PCA(n_components=30)
-pca1.fit(dataset_scaled)
-datasetPCA1=pca.transform(dataset_scaled)
+
+datasetPCA2d=ourPCA(dataset_scaled,2)
+
+datasetPCA30d=ourPCA(dataset_scaled,30)
+
 
 #Scatter dos pontos obtidos pelo PCA
 #scatter3d(datasetPCA,labels_multi, 'Multiclass Problem - PCA', colors, labels_multi_names)
@@ -272,10 +281,12 @@ scatter3d(datasetPCA,labels_bin, 'Binary Problem - PCA', colorsBin, labels_bin_n
 plot2d(datasetPCA2d,labels_multi, 'Multiclass Problem - PCA', colors)
 plot2d(datasetPCA2d,labels_bin, 'Binary Problem - PCA', colorsBin)
 
+
+
 #'''
 #-----------------------------------------------------------------
 #LDA
-#'''
+'''
 lda = LinearDiscriminantAnalysis(n_components=3)
 lda_components = lda.fit(dataset_scaled, labels_multi).transform(dataset_scaled)
 
@@ -290,7 +301,7 @@ plot2d(lda_components,labels_bin, 'Binary Problem - LDA', colorsBin)
 
 scatter3d(lda_components,labels_multi, 'Multiclass Problem - LDA', colors);
 
-#'''
+'''
 
 #------------------------------------------
 # FISHER LDA

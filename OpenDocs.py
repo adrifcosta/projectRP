@@ -18,6 +18,8 @@ from sklearn.feature_selection import SelectFromModel
 from sklearn.linear_model import LassoCV
 import math
 from sklearn.decomposition import PCA
+from sklearn import cross_validation
+from sklearn.linear_model import LinearRegression
 
 
 features_names=pd.read_csv('features.txt', delim_whitespace=True,header=None)
@@ -256,22 +258,45 @@ def plot2d(data,labels, title, colors):
 #-----------------------------------------------------------------
 #PCA
 #'''
-def ourPCA(data, comp):
+def ourPCA(data,dataY, comp):
     pca = decomposition.PCA(n_components=comp)
     pca.fit(data)
     #Variance (% cumulative) explained by the principal components
     print(np.cumsum(np.round(pca.explained_variance_ratio_, decimals=4) * 100))
     #pca.components_ The components are sorted by explained_variance_
     #a 1a componente é aquela que tem mais variance_ratio
-    datasetPCA = pca.transform(data)
-    return datasetPCA
+    dataReduced = pca.transform(data)
 
-datasetPCA=ourPCA(dataset_scaled,3)
+    n = len(dataReduced)
+    kf_10 = cross_validation.KFold(n, n_folds=10, shuffle=True, random_state=2)
+    regr = LinearRegression()
+    mse = []
 
+    score = -1 * cross_validation.cross_val_score(regr, np.ones((n, 1)), dataY.ravel(), cv=kf_10,
+                                                  scoring='mean_squared_error').mean()
+    mse.append(score)
 
-datasetPCA2d=ourPCA(dataset_scaled,2)
+    for i in np.arange(1, comp+1):
+        score = -1 * cross_validation.cross_val_score(regr, dataReduced[:, :i], dataY.ravel(), cv=kf_10,
+                                                      scoring='mean_squared_error').mean()
+        mse.append(score)
+    plt.figure()
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+    ax1.plot(mse, '-v')
+    ax2.plot(np.arange(1, comp+1), mse[1:comp+1], '-v')
+    ax2.set_title('Intercept excluded from plot')
 
-datasetPCA30d=ourPCA(dataset_scaled,30)
+    for ax in fig.axes:
+        ax.set_xlabel('Number of principal components in regression')
+        ax.set_ylabel('MSE')
+        ax.set_xlim((-0.2, comp+0.2))
+    return dataReduced
+
+datasetPCA=ourPCA(dataset_scaled,labels_bin,3)
+
+datasetPCA2d=ourPCA(dataset_scaled,labels_bin,2)
+
+datasetPCA30d=ourPCA(dataset_scaled,labels_bin,30)
 
 
 #Scatter dos pontos obtidos pelo PCA

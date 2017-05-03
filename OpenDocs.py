@@ -263,6 +263,7 @@ def ourPCA(data,dataY, comp):
     pca.fit(data)
     #Variance (% cumulative) explained by the principal components
     print(np.cumsum(np.round(pca.explained_variance_ratio_, decimals=4) * 100))
+
     #pca.components_ The components are sorted by explained_variance_
     #a 1a componente é aquela que tem mais variance_ratio
     dataReduced = pca.transform(data)
@@ -272,10 +273,12 @@ def ourPCA(data,dataY, comp):
     regr = LinearRegression()
     mse = []
 
+    #começo por fazer este passo para obter a interceção, isto é, número de componentes é 0
     score = -1 * cross_validation.cross_val_score(regr, np.ones((n, 1)), dataY.ravel(), cv=kf_10,
                                                   scoring='mean_squared_error').mean()
     mse.append(score)
 
+    #faço uma regressão linear entre cada componente e os labels e calculo o MSE
     for i in np.arange(1, comp+1):
         score = -1 * cross_validation.cross_val_score(regr, dataReduced[:, :i], dataY.ravel(), cv=kf_10,
                                                       scoring='mean_squared_error').mean()
